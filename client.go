@@ -62,7 +62,12 @@ func (codec *clientCodec) WriteRequest(request *rpc.Request, params interface{})
 	}
 
 	codec.responses[request.Seq] = httpResponse
-	codec.ready <- request.Seq
+	select {
+	case codec.ready <- request.Seq:
+	case <-codec.close:
+		err = fmt.Errorf("codec is closed")
+		return
+	}
 
 	return nil
 }
